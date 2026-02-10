@@ -422,15 +422,15 @@
       </div>
       <div class="dpad">
         <div class="dpad-row">
-          <button class="dpad-arrow"><svg width="22" height="16" viewBox="0 0 22 16" fill="none"><path d="M11 2L19 14H3L11 2Z" stroke="#bbb" stroke-width="2.5" stroke-linejoin="round"/></svg></button>
+          <button class="dpad-arrow" data-dir="up"><svg width="22" height="16" viewBox="0 0 22 16" fill="none"><path d="M11 2L19 14H3L11 2Z" stroke="#bbb" stroke-width="2.5" stroke-linejoin="round"/></svg></button>
         </div>
         <div class="dpad-row">
-          <button class="dpad-arrow"><svg width="16" height="22" viewBox="0 0 16 22" fill="none"><path d="M2 11L14 3V19L2 11Z" stroke="#bbb" stroke-width="2.5" stroke-linejoin="round"/></svg></button>
+          <button class="dpad-arrow" data-dir="left"><svg width="16" height="22" viewBox="0 0 16 22" fill="none"><path d="M2 11L14 3V19L2 11Z" stroke="#bbb" stroke-width="2.5" stroke-linejoin="round"/></svg></button>
           <button class="dpad-center-btn">slow</button>
-          <button class="dpad-arrow"><svg width="16" height="22" viewBox="0 0 16 22" fill="none"><path d="M14 11L2 3V19L14 11Z" stroke="#bbb" stroke-width="2.5" stroke-linejoin="round"/></svg></button>
+          <button class="dpad-arrow" data-dir="right"><svg width="16" height="22" viewBox="0 0 16 22" fill="none"><path d="M14 11L2 3V19L14 11Z" stroke="#bbb" stroke-width="2.5" stroke-linejoin="round"/></svg></button>
         </div>
         <div class="dpad-row" style="flex-direction:column;align-items:center;">
-          <button class="dpad-arrow"><svg width="22" height="16" viewBox="0 0 22 16" fill="none"><path d="M11 14L3 2H19L11 14Z" stroke="#bbb" stroke-width="2.5" stroke-linejoin="round"/></svg></button>
+          <button class="dpad-arrow" data-dir="down"><svg width="22" height="16" viewBox="0 0 22 16" fill="none"><path d="M11 14L3 2H19L11 14Z" stroke="#bbb" stroke-width="2.5" stroke-linejoin="round"/></svg></button>
           <span class="dpad-x2">x2</span>
         </div>
       </div>
@@ -472,33 +472,96 @@
 </div>
 
 <script>
-  // ===== CONFIGURATION CAMERAS =====
+  // ===== CONFIGURATION =====
+  const CAMERA_IP = '192.168.1.54';
   const camSources = {
-    1: 'http://192.168.1.54/image3',  // Sony FR7 MJPEG direct
+    1: 'http://' + CAMERA_IP + '/image3',
     2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
   };
 
   let activePgmCam = null;
   let activePreviewCam = null;
+  let ptzSpeed = 5;
+
+  // ===== ENVOYER COMMANDE CAMERA =====
+  function sendCmd(cgi, params) {
+    const query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
+    const url = 'http://' + CAMERA_IP + '/command/' + cgi + '?' + query;
+    var img = new Image();
+    img.src = url;
+  }
+
+  // ===== PTZ =====
+  function ptzMove(direction) {
+    var s = ptzSpeed;
+    if (direction === 'up') sendCmd('ptzf.cgi', { PanTiltMove: 'up,0,' + s });
+    if (direction === 'down') sendCmd('ptzf.cgi', { PanTiltMove: 'down,0,' + s });
+    if (direction === 'left') sendCmd('ptzf.cgi', { PanTiltMove: 'left,' + s + ',0' });
+    if (direction === 'right') sendCmd('ptzf.cgi', { PanTiltMove: 'right,' + s + ',0' });
+  }
+
+  function ptzStop() {
+    sendCmd('ptzf.cgi', { PanTiltMove: 'stop,0,0' });
+  }
+
+  // ===== D-PAD =====
+  document.querySelectorAll('.dpad-arrow').forEach(function(arrow) {
+    var dir = arrow.getAttribute('data-dir');
+    if (!dir) return;
+
+    arrow.addEventListener('mousedown', function(e) { e.preventDefault(); ptzMove(dir); });
+    arrow.addEventListener('touchstart', function(e) { e.preventDefault(); ptzMove(dir); });
+    arrow.addEventListener('mouseup', ptzStop);
+    arrow.addEventListener('mouseleave', ptzStop);
+    arrow.addEventListener('touchend', ptzStop);
+  });
+
+  // Speed toggle
+  document.querySelector('.dpad-center-btn').addEventListener('click', function() {
+    if (ptzSpeed === 5) {
+      ptzSpeed = 20;
+      this.textContent = 'fast';
+      this.style.background = '#ff6600';
+    } else {
+      ptzSpeed = 5;
+      this.textContent = 'slow';
+      this.style.background = '#00c8ff';
+    }
+  });
+
+  // ===== ZOOM =====
+  document.querySelectorAll('.zoom-btn').forEach(function(btn) {
+    var dir = btn.textContent.trim() === '+' ? 'tele' : 'wide';
+    btn.addEventListener('mousedown', function(e) { e.preventDefault(); sendCmd('ptzf.cgi', { ZoomMove: dir + ',5000' }); });
+    btn.addEventListener('mouseup', function() { sendCmd('ptzf.cgi', { ZoomMove: 'stop,0' }); });
+    btn.addEventListener('mouseleave', function() { sendCmd('ptzf.cgi', { ZoomMove: 'stop,0' }); });
+    btn.addEventListener('touchstart', function(e) { e.preventDefault(); sendCmd('ptzf.cgi', { ZoomMove: dir + ',5000' }); });
+    btn.addEventListener('touchend', function() { sendCmd('ptzf.cgi', { ZoomMove: 'stop,0' }); });
+  });
+
+  // ===== HOME =====
+  document.querySelector('.home-icon').addEventListener('click', function() {
+    sendCmd('presetposition.cgi', { HomePos: 'recall' });
+  });
 
   // ===== CAM PILLS → PGM =====
-  document.querySelectorAll('.cam-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
+  document.querySelectorAll('.cam-pill').forEach(function(pill) {
+    pill.addEventListener('click', function() {
       selectPgmCam(parseInt(pill.dataset.cam));
     });
   });
 
   function selectPgmCam(camNum) {
-    const pgmLabel = document.getElementById('pgmLabel');
-    const pgmStream = document.getElementById('pgmStream');
-    const pgmLive = document.getElementById('pgmLive');
-    const pgmCamLabel = document.getElementById('pgmCamLabel');
+    var pgmLabel = document.getElementById('pgmLabel');
+    var pgmStream = document.getElementById('pgmStream');
+    var pgmLive = document.getElementById('pgmLive');
+    var pgmCamLabel = document.getElementById('pgmCamLabel');
 
-    document.querySelectorAll('.cam-pill').forEach(p => p.classList.remove('active'));
-    document.querySelector(`.cam-pill[data-cam="${camNum}"]`).classList.add('active');
+    document.querySelectorAll('.cam-pill').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelector('.cam-pill[data-cam="' + camNum + '"]').classList.add('active');
     activePgmCam = camNum;
 
-    const src = camSources[camNum];
+    var src = camSources[camNum];
     if (src) {
       pgmLabel.style.display = 'none';
       pgmStream.src = src;
@@ -518,23 +581,23 @@
   }
 
   // ===== CAM GRID → PREVIEW =====
-  document.querySelectorAll('.cam-g').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const camNum = btn.dataset.cam;
+  document.querySelectorAll('.cam-g').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var camNum = btn.dataset.cam;
       if (!camNum) return;
       selectPreviewCam(parseInt(camNum));
     });
   });
 
   function selectPreviewCam(camNum) {
-    const previewLabel = document.getElementById('previewLabel');
-    const previewStream = document.getElementById('previewStream');
+    var previewLabel = document.getElementById('previewLabel');
+    var previewStream = document.getElementById('previewStream');
 
-    document.querySelectorAll('.cam-g').forEach(g => g.classList.remove('active'));
-    document.querySelector(`.cam-g[data-cam="${camNum}"]`).classList.add('active');
+    document.querySelectorAll('.cam-g').forEach(function(g) { g.classList.remove('active'); });
+    document.querySelector('.cam-g[data-cam="' + camNum + '"]').classList.add('active');
     activePreviewCam = camNum;
 
-    const src = camSources[camNum];
+    var src = camSources[camNum];
     if (src) {
       previewLabel.style.display = 'none';
       previewStream.src = src;
@@ -548,19 +611,19 @@
     }
   }
 
-  // Handle stream errors
-  document.getElementById('pgmStream').addEventListener('error', () => {
+  // ===== ERREURS STREAM =====
+  document.getElementById('pgmStream').addEventListener('error', function() {
     document.getElementById('pgmStream').style.display = 'none';
     document.getElementById('pgmLive').style.display = 'none';
-    const l = document.getElementById('pgmLabel');
+    var l = document.getElementById('pgmLabel');
     l.style.display = 'block';
     l.textContent = 'CAM ' + activePgmCam + ' — pas de signal';
     l.style.color = '#c44';
   });
 
-  document.getElementById('previewStream').addEventListener('error', () => {
+  document.getElementById('previewStream').addEventListener('error', function() {
     document.getElementById('previewStream').style.display = 'none';
-    const l = document.getElementById('previewLabel');
+    var l = document.getElementById('previewLabel');
     l.style.display = 'block';
     l.textContent = 'CAM ' + activePreviewCam + ' — pas de signal';
     l.style.color = '#c44';
