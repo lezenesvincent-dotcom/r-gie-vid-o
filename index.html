@@ -95,24 +95,75 @@
   .bottom-left { display: flex; gap: 8px; flex-shrink: 0; }
   .pages-panel {
     background: #282c34; border-radius: 12px; padding: 10px;
-    display: flex; gap: 8px; align-items: flex-start; flex: 1;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
-  .page-thumb { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex: 1; }
-  .page-img {
-    width: 100%; height: 100px;
-    background: linear-gradient(155deg, #182838 0%, #0e1a28 40%, #121c2a 100%);
-    border-radius: 6px; border: 2px solid #3a4252;
-    overflow: hidden; padding: 4px;
-    display: flex; flex-direction: column; gap: 2px;
+  .pages-scroll {
+    display: flex;
+    gap: 8px;
+    min-width: min-content;
   }
-  .page-img.solid-cyan { background: #00c8ff; border-color: #00c8ff; padding: 0; }
-  .page-img .pi-hdr { height: 10px; background: rgba(30,70,120,0.5); border-radius: 2px; display: flex; align-items: center; padding: 0 3px; }
-  .page-img .pi-hdr span { font-size: 4.5px; color: rgba(255,255,255,0.35); }
-  .page-img .pi-hdr .commission { margin-left: auto; font-size: 4px; color: rgba(255,255,255,0.25); }
-  .page-img .pi-body { flex: 1; display: flex; gap: 3px; }
-  .page-img .pi-col { flex: 1; background: rgba(20,55,95,0.3); border-radius: 2px; padding: 2px; display: flex; flex-direction: column; gap: 2px; }
-  .page-img .pi-line { height: 3px; background: rgba(50,110,170,0.2); border-radius: 1px; }
-  .page-thumb .p-label { font-size: 12px; color: #777; }
+  .pages-panel::-webkit-scrollbar { height: 4px; }
+  .pages-panel::-webkit-scrollbar-track { background: transparent; }
+  .pages-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+  .content-card {
+    width: 130px;
+    height: 100px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .content-card:hover { transform: scale(1.03); }
+  .content-card.selected { border-color: #00c8ff; box-shadow: 0 0 10px rgba(0,200,255,0.4); }
+  .content-card.online { animation: cardPulse 2s ease-in-out infinite; }
+  @keyframes cardPulse {
+    0%, 100% { box-shadow: 0 0 0 rgba(0,200,255,0); }
+    50% { box-shadow: 0 0 12px rgba(0,200,255,0.3); }
+  }
+  .content-card .cc-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    text-transform: uppercase;
+    line-height: 1.2;
+    margin-bottom: 3px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .content-card .cc-sub {
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .content-card-empty {
+    width: 130px;
+    height: 100px;
+    background: #333a44;
+    border-radius: 10px;
+    border: 2px dashed #4a5060;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    font-size: 11px;
+  }
 
   .right-tags { display: flex; flex-direction: column; gap: 6px; width: 260px; flex-shrink: 0; }
   .tag-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
@@ -330,31 +381,9 @@
     </div>
 
     <div class="bottom-left">
-      <div class="pages-panel">
-        <div class="page-thumb">
-          <div class="page-img">
-            <div class="pi-hdr"><span>JIC GROUP</span><span class="commission">Commission</span></div>
-            <div class="pi-body">
-              <div class="pi-col"><div class="pi-line"></div><div class="pi-line"></div><div class="pi-line" style="width:70%"></div></div>
-              <div class="pi-col"><div class="pi-line"></div><div class="pi-line" style="width:60%"></div></div>
-              <div class="pi-col"><div class="pi-line"></div><div class="pi-line"></div></div>
-            </div>
-          </div>
-          <span class="p-label">P1</span>
-        </div>
-        <div class="page-thumb">
-          <div class="page-img">
-            <div class="pi-hdr"><span>JIC GROUP</span><span class="commission">Commission</span></div>
-            <div class="pi-body">
-              <div class="pi-col"><div class="pi-line"></div><div class="pi-line"></div><div class="pi-line" style="width:70%"></div></div>
-              <div class="pi-col"><div class="pi-line"></div><div class="pi-line" style="width:60%"></div></div>
-              <div class="pi-col"><div class="pi-line"></div><div class="pi-line"></div></div>
-            </div>
-          </div>
-          <span class="p-label">P2</span>
-        </div>
-        <div style="flex:0.3;">
-          <div class="page-img solid-cyan" style="height:100px;width:60px;"></div>
+      <div class="pages-panel" id="pagesPanel">
+        <div class="pages-scroll" id="pagesScroll">
+          <div class="content-card-empty">Chargement...</div>
         </div>
       </div>
       <div class="right-tags">
@@ -473,20 +502,75 @@
 
 <script>
   // ===== CONFIGURATION =====
-  const CAMERA_IP = '192.168.1.54';
-  const camSources = {
+  var CAMERA_IP = '192.168.1.54';
+  var WS_SERVER = 'https://ecamm-overlay-server.onrender.com';
+  var camSources = {
     1: 'http://' + CAMERA_IP + '/image3',
     2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
   };
 
-  let activePgmCam = null;
-  let activePreviewCam = null;
-  let ptzSpeed = 5;
+  var activePgmCam = null;
+  var activePreviewCam = null;
+  var ptzSpeed = 5;
+  var selectedContentId = null;
+
+  // ===== OVERLAY CONTENTS =====
+  function loadContents() {
+    fetch(WS_SERVER + '/api/history')
+      .then(function(r) { return r.json(); })
+      .then(function(history) {
+        var scroll = document.getElementById('pagesScroll');
+        scroll.innerHTML = '';
+
+        if (!history || history.length === 0) {
+          scroll.innerHTML = '<div class="content-card-empty">Aucun contenu</div>';
+          return;
+        }
+
+        history.forEach(function(item) {
+          var card = document.createElement('div');
+          card.className = 'content-card';
+          if (item.id === selectedContentId) card.classList.add('selected');
+
+          var title = item.titre || item.title || 'Sans titre';
+          var sub = item.soustitre || item.subtitle || '';
+          if (!sub && item.p1 && item.p1.sujet) sub = item.p1.sujet;
+
+          card.innerHTML = '<div class="cc-title">' + title + '</div><div class="cc-sub">' + sub + '</div>';
+
+          card.addEventListener('click', function() {
+            selectContent(item);
+            document.querySelectorAll('.content-card').forEach(function(c) { c.classList.remove('selected'); });
+            card.classList.add('selected');
+          });
+
+          scroll.appendChild(card);
+        });
+      })
+      .catch(function() {
+        document.getElementById('pagesScroll').innerHTML = '<div class="content-card-empty">Serveur hors ligne</div>';
+      });
+  }
+
+  function selectContent(item) {
+    selectedContentId = item.id;
+    // Envoie le contenu au widget overlay
+    fetch(WS_SERVER + '/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    });
+  }
+
+  // Charger les contenus au démarrage
+  loadContents();
+  // Rafraîchir toutes les 30 secondes
+  setInterval(loadContents, 30000);
 
   // ===== ENVOYER COMMANDE CAMERA =====
   function sendCmd(cgi, params) {
-    const query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
-    const url = 'http://' + CAMERA_IP + '/command/' + cgi + '?' + query;
+    var query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
+    var url = 'http://' + CAMERA_IP + '/command/' + cgi + '?' + query;
     var img = new Image();
     img.src = url;
   }
@@ -508,7 +592,6 @@
   document.querySelectorAll('.dpad-arrow').forEach(function(arrow) {
     var dir = arrow.getAttribute('data-dir');
     if (!dir) return;
-
     arrow.addEventListener('mousedown', function(e) { e.preventDefault(); ptzMove(dir); });
     arrow.addEventListener('touchstart', function(e) { e.preventDefault(); ptzMove(dir); });
     arrow.addEventListener('mouseup', ptzStop);
