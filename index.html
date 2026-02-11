@@ -516,7 +516,7 @@
 
   // ===== OVERLAY CONTENTS =====
   function loadContents() {
-   fetch(WS_SERVER + '/api/data')
+  fetch(WS_SERVER + '/history')
       .then(function(r) { return r.json(); })
       .then(function(history) {
         var scroll = document.getElementById('pagesScroll');
