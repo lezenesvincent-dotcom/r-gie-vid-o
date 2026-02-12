@@ -507,7 +507,7 @@
   var CAMERA_IP = '192.168.1.54';
   var WS_SERVER = 'https://ecamm-overlay-server.onrender.com';
   var camSources = {
-    1: 'http://' + CAMERA_IP + '/image3',
+    1: 'https://' + CAMERA_IP + '/image3',
     2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
   };
 
@@ -576,7 +576,7 @@
   // ===== ENVOYER COMMANDE CAMERA =====
   function sendCmd(cgi, params) {
     var query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
-    var url = 'http://' + CAMERA_IP + '/command/' + cgi + '?' + query;
+   var url = 'https://' + CAMERA_IP + '/command/' + cgi + '?' + query;
     var img = new Image();
     img.src = url;
   }
