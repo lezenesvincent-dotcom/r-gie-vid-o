@@ -67,6 +67,16 @@
     border-radius: 12px 12px 0 0;
     display: none;
   }
+  .pgm-screen video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 12px 12px 0 0;
+    display: none;
+    background: #000;
+  }
   .pgm-live-badge {
     position: absolute; top: 10px; left: 12px;
     background: #e00; color: #fff; font-size: 11px; font-weight: 800;
@@ -261,7 +271,12 @@
     flex: 1;
     min-height: 0;
     align-items: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
+  .media-thumbs-row::-webkit-scrollbar { height: 3px; }
+  .media-thumbs-row::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
   .m-wrap {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     width: 120px; flex-shrink: 0;
@@ -271,7 +286,10 @@
     overflow: hidden; cursor: pointer; border: 3px solid transparent;
   }
   .m-thumb.sel { border-color: #00c8ff; box-shadow: 0 0 12px rgba(0,200,255,0.3); }
+  .m-thumb.playing { border-color: #e00; box-shadow: 0 0 12px rgba(224,0,0,0.4); }
   .m-inner { width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; }
+  .gen-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #1a2a4a 0%, #0a1828 100%); }
+  .gen-icon { position: relative; z-index: 1; font-size: 26px; opacity: 0.9; }
   .sw1 {
     position: absolute; inset: 0;
     background: radial-gradient(ellipse at 20% 55%, rgba(0,220,130,0.7) 0%, transparent 48%),
@@ -390,6 +408,7 @@
       <div class="pgm-screen" id="pgmScreen">
         <span id="pgmLabel">PGM</span>
         <img id="pgmStream" alt="">
+        <video id="pgmVideo" playsinline></video>
         <div class="pgm-live-badge" id="pgmLive">● LIVE</div>
         <div class="pgm-cam-label" id="pgmCamLabel"></div>
       </div>
@@ -504,15 +523,8 @@
 
     <div class="media-zone">
       <div class="media-left">
-        <div class="media-thumbs-row">
-          <div class="m-wrap">
-            <div class="m-thumb sel"><div class="m-inner"><div class="sw1"></div><div class="m-logo">DIRECT</div></div></div>
-            <span class="m-label">DIRECT ANALYSTES</span>
-          </div>
-          <div class="m-wrap">
-            <div class="m-thumb"><div class="m-inner"><div class="sw2"></div><div class="m-logo">DIRECT</div></div></div>
-            <span class="m-label">HOT</span>
-          </div>
+        <div class="media-thumbs-row" id="genThumbs">
+          <!-- Génériques loaded by JS -->
         </div>
         <div class="bottom-ctrls">
           <button class="bc bc-demo">Démo</button>
@@ -764,6 +776,78 @@
       previewLabel.style.color = '#aaa';
     }
   }
+
+  // ===== GÉNÉRIQUES =====
+  var generiques = [
+    { nom: 'GEN - Ligne Métier Communication', url: 'https://drive.google.com/uc?export=download&id=1Gi9M9CKPpSG98H-BYl87EGOYorO5ojdy' }
+  ];
+
+  var pgmVideo = document.getElementById('pgmVideo');
+
+  // Générer les vignettes
+  function buildGenThumbs() {
+    var container = document.getElementById('genThumbs');
+    container.innerHTML = '';
+    generiques.forEach(function(gen, i) {
+      var wrap = document.createElement('div');
+      wrap.className = 'm-wrap';
+      wrap.innerHTML = '<div class="m-thumb" data-gen="' + i + '"><div class="m-inner"><div class="gen-bg"></div><span class="gen-icon">▶</span></div></div><span class="m-label">' + gen.nom + '</span>';
+      wrap.querySelector('.m-thumb').addEventListener('click', function() {
+        playGenerique(i);
+      });
+      container.appendChild(wrap);
+    });
+  }
+  buildGenThumbs();
+
+  function playGenerique(index) {
+    var gen = generiques[index];
+    var pgmLabel = document.getElementById('pgmLabel');
+    var pgmStream = document.getElementById('pgmStream');
+    var pgmLive = document.getElementById('pgmLive');
+    var pgmCamLabel = document.getElementById('pgmCamLabel');
+
+    // Masquer le flux caméra
+    pgmStream.style.display = 'none';
+    pgmStream.src = '';
+    pgmLabel.style.display = 'none';
+    pgmLive.style.display = 'none';
+    pgmCamLabel.style.display = 'none';
+
+    // Déselectionner les cam pills
+    document.querySelectorAll('.cam-pill').forEach(function(p) { p.classList.remove('active'); });
+    activePgmCam = null;
+
+    // Marquer la vignette en lecture
+    document.querySelectorAll('.m-thumb').forEach(function(t) { t.classList.remove('playing'); });
+    var thumb = document.querySelector('.m-thumb[data-gen="' + index + '"]');
+    if (thumb) thumb.classList.add('playing');
+
+    // Lancer la vidéo
+    pgmVideo.src = gen.url;
+    pgmVideo.style.display = 'block';
+    pgmVideo.play();
+  }
+
+  // Quand la vidéo se termine, afficher PGM
+  pgmVideo.addEventListener('ended', function() {
+    pgmVideo.style.display = 'none';
+    pgmVideo.src = '';
+    document.querySelectorAll('.m-thumb').forEach(function(t) { t.classList.remove('playing'); });
+    document.getElementById('pgmLabel').style.display = 'block';
+    document.getElementById('pgmLabel').textContent = 'PGM';
+    document.getElementById('pgmLabel').style.color = '#aaa';
+  });
+
+  // Quand on sélectionne une caméra, stopper la vidéo
+  var origSelectPgmCam = selectPgmCam;
+  selectPgmCam = function(camNum) {
+    pgmVideo.pause();
+    pgmVideo.style.display = 'none';
+    pgmVideo.src = '';
+    document.querySelectorAll('.m-thumb').forEach(function(t) { t.classList.remove('playing'); });
+    origSelectPgmCam(camNum);
+  };
 
   // ===== ERREURS STREAM =====
   document.getElementById('pgmStream').addEventListener('error', function() {
