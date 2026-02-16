@@ -881,14 +881,9 @@ var generiques = [
     var thumb = document.querySelector('.m-thumb[data-gen="' + index + '"]');
     if (thumb) thumb.classList.add('playing');
 
-    // Ne recharger la src que si c'est un autre générique
-    if (pgmVideo.getAttribute('data-current') !== '' + index) {
-      pgmVideo.src = gen.url;
-      pgmVideo.load();
-      pgmVideo.setAttribute('data-current', index);
-    } else {
-      pgmVideo.currentTime = 0;
-    }
+    // Lancer la vidéo
+    pgmVideo.src = gen.url;
+    pgmVideo.load();
     pgmVideo.style.display = 'block';
     pgmVideo.play();
   }
