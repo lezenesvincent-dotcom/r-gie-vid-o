@@ -87,6 +87,49 @@
     color: #00c8ff; font-size: 13px; font-weight: 700; display: none; z-index: 2;
   }
 
+  /* === SYNTHÉ OVERLAY ON PGM === */
+  .synthe-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    pointer-events: none;
+    padding: 0;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .synthe-overlay.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .synthe-bandeau {
+    background: linear-gradient(90deg, rgba(40,44,52,0.95) 0%, rgba(40,44,52,0.85) 50%, rgba(40,44,52,0) 100%);
+    padding: 10px 20px 12px 14px;
+    max-width: 70%;
+    border-radius: 0 0 0 12px;
+  }
+  .synthe-nom {
+    font-size: 1.1vw;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+    letter-spacing: 0.3px;
+  }
+  .synthe-fonction {
+    font-size: 0.75vw;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.3;
+  }
+  .synthe-entreprise {
+    font-size: 0.7vw;
+    font-weight: 500;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.3;
+  }
+
   .cam-pills { display: flex; gap: 4px; padding: 8px 8px 10px; flex-shrink: 0; }
   .cam-pill {
     flex: 1; height: 30px;
@@ -179,9 +222,68 @@
     border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
 
-  .detected-row { display: flex; align-items: center; gap: 6px; flex-shrink: 0; padding: 4px 0; }
-  .det-label { font-size: 11px; color: #555; background: #282c34; border: 1.5px solid #3a4252; border-radius: 8px; padding: 4px 10px; }
-  .det-name { background: rgba(0,180,240,0.15); border: 1.5px solid #00aadd; border-radius: 16px; padding: 4px 12px; font-size: 11px; color: #00c8ff; cursor: pointer; }
+  /* === SYNTHÉS PANEL (scrollable) === */
+  .synthes-panel {
+    background: #282c34;
+    border-radius: 12px;
+    padding: 8px 10px;
+    flex-shrink: 0;
+    max-height: 90px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .synthes-panel::-webkit-scrollbar { width: 3px; }
+  .synthes-panel::-webkit-scrollbar-track { background: transparent; }
+  .synthes-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+  .synthes-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .synthes-label {
+    font-size: 10px;
+    color: #555;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .synthes-count {
+    font-size: 9px;
+    color: #444;
+    font-weight: 500;
+  }
+  .synthes-grid {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .synthe-pill {
+    background: rgba(0,180,240,0.08);
+    border: 1.5px solid #00aadd;
+    border-radius: 16px;
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #00c8ff;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .synthe-pill:hover {
+    background: rgba(0,180,240,0.15);
+  }
+  .synthe-pill.on-air {
+    background: rgba(224,0,0,0.15);
+    border-color: #e00;
+    color: #ff4444;
+    animation: pulse-pill 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-pill {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(224,0,0,0); }
+    50% { box-shadow: 0 0 8px 2px rgba(224,0,0,0.3); }
+  }
 
   /* ===== CENTER COLUMN: Preview + Cam Grid + PTZ + Media ===== */
   .center {
@@ -237,14 +339,13 @@
   .cam-g.active { background: #00c8ff; border-color: #00c8ff; color: #000; }
   .cam-g.empty { color: #445; }
 
-  /* D-pad - bigger arrows like reference */
+  /* D-pad */
   .dpad { width: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; gap: 2px; }
   .dpad-row { display: flex; align-items: center; justify-content: center; gap: 2px; }
   .dpad-arrow {
     background: none; border: none; cursor: pointer; padding: 4px;
     display: flex; align-items: center; justify-content: center;
   }
-  .dpad-arrow svg { transition: all 0.15s; }
   .dpad-arrow:hover svg path { stroke: #fff; }
   .dpad-center-btn {
     width: 38px; height: 38px; background: #00c8ff; border-radius: 50%; border: none;
@@ -290,23 +391,6 @@
   .m-inner { width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; }
   .gen-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #1a2a4a 0%, #0a1828 100%); }
   .gen-icon { position: relative; z-index: 1; font-size: 26px; opacity: 0.9; }
-  .sw1 {
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse at 20% 55%, rgba(0,220,130,0.7) 0%, transparent 48%),
-                radial-gradient(ellipse at 80% 45%, rgba(50,70,180,0.6) 0%, transparent 48%),
-                linear-gradient(180deg, #080820, #100028);
-  }
-  .sw2 {
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse at 55% 45%, rgba(70,80,200,0.5) 0%, transparent 50%),
-                linear-gradient(180deg, #181838, #1a0030);
-  }
-  .m-logo {
-    position: relative; z-index: 1; width: 36px; height: 36px;
-    background: linear-gradient(135deg, #2244cc, #1a33aa); border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 6px; font-weight: 800;
-  }
   .m-label { font-size: 9px; color: #888; font-weight: 500; text-align: center; }
 
   .bottom-ctrls {
@@ -403,61 +487,21 @@
     transition: background 0.2s;
   }
   .cal-ev:hover { background: #2e3340; }
-  .cal-ev.active {
-    background: rgba(0,200,255,0.12);
-    border-left-color: #00c8ff;
-  }
-  .cal-ev.past {
-    opacity: 0.4;
-    border-left-color: #555;
-  }
-  .cal-ev .cal-ev-time {
-    font-size: 8px;
-    font-weight: 700;
-    color: #00c8ff;
-    margin-bottom: 1px;
-  }
+  .cal-ev.active { background: rgba(0,200,255,0.12); border-left-color: #00c8ff; }
+  .cal-ev.past { opacity: 0.4; border-left-color: #555; }
+  .cal-ev .cal-ev-time { font-size: 8px; font-weight: 700; color: #00c8ff; margin-bottom: 1px; }
   .cal-ev.past .cal-ev-time { color: #666; }
-  .cal-ev .cal-ev-title {
-    font-size: 10px;
-    font-weight: 700;
-    color: #ccc;
-    line-height: 1.2;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
+  .cal-ev .cal-ev-title { font-size: 10px; font-weight: 700; color: #ccc; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .cal-ev.past .cal-ev-title { color: #888; }
 
   .cal-now-line {
-    position: absolute;
-    left: 28px;
-    right: 0;
-    height: 2px;
-    background: #00c8ff;
-    z-index: 5;
-    pointer-events: none;
+    position: absolute; left: 28px; right: 0; height: 2px; background: #00c8ff; z-index: 5; pointer-events: none;
   }
   .cal-now-line::before {
-    content: '';
-    position: absolute;
-    left: -4px;
-    top: -3px;
-    width: 8px;
-    height: 8px;
-    background: #00c8ff;
-    border-radius: 50%;
+    content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; background: #00c8ff; border-radius: 50%;
   }
   .cal-now-label {
-    position: absolute;
-    left: 0;
-    top: -6px;
-    font-size: 8px;
-    font-weight: 800;
-    color: #00c8ff;
-    z-index: 6;
-    pointer-events: none;
+    position: absolute; left: 0; top: -6px; font-size: 8px; font-weight: 800; color: #00c8ff; z-index: 6; pointer-events: none;
   }
 </style>
 </head>
@@ -473,6 +517,14 @@
         <video id="pgmVideo" playsinline preload="auto"></video>
         <div class="pgm-live-badge" id="pgmLive">● LIVE</div>
         <div class="pgm-cam-label" id="pgmCamLabel"></div>
+        <!-- SYNTHÉ OVERLAY -->
+        <div class="synthe-overlay" id="syntheOverlay">
+          <div class="synthe-bandeau">
+            <div class="synthe-nom" id="syntheNom"></div>
+            <div class="synthe-fonction" id="syntheFonction"></div>
+            <div class="synthe-entreprise" id="syntheEntreprise"></div>
+          </div>
+        </div>
       </div>
       <div class="cam-pills" id="camPills">
         <div class="cam-pill" data-cam="1">CAM 1</div>
@@ -520,10 +572,15 @@
       </div>
     </div>
 
-    <div class="detected-row">
-      <span class="det-label">Détecté</span>
-      <span class="det-name">Arnaud Palliez</span>
-      <span class="det-name">Eric Baron</span>
+    <!-- SYNTHÉS PANEL (scrollable) -->
+    <div class="synthes-panel" id="synthesPanel">
+      <div class="synthes-header">
+        <span class="synthes-label">Synthés</span>
+        <span class="synthes-count" id="synthesCount"></span>
+      </div>
+      <div class="synthes-grid" id="synthesGrid">
+        <span style="font-size:10px;color:#444;">Chargement contacts...</span>
+      </div>
     </div>
   </div>
 
@@ -585,9 +642,7 @@
 
     <div class="media-zone">
       <div class="media-left">
-        <div class="media-thumbs-row" id="genThumbs">
-          <!-- Génériques loaded by JS -->
-        </div>
+        <div class="media-thumbs-row" id="genThumbs"></div>
         <div class="bottom-ctrls">
           <button class="bc bc-demo">Démo</button>
           <button class="bc bc-icon">
@@ -613,9 +668,7 @@
   <div class="calendar-col">
     <div class="cal-header" id="calHeader"></div>
     <div class="cal-timeline" id="calTimeline">
-      <div class="cal-timeline-inner" id="calTimelineInner">
-        <!-- Hour rows + events + now line generated by JS -->
-      </div>
+      <div class="cal-timeline-inner" id="calTimelineInner"></div>
     </div>
   </div>
 
@@ -625,8 +678,9 @@
   // ===== CONFIGURATION =====
   var CAMERA_IP = '192.168.1.54';
   var WS_SERVER = 'https://ecamm-overlay-server.onrender.com';
+  var GH_REPO = 'lezenesvincent-dotcom/mon-content-manager';
   var camSources = {
-     1: 'https://admin:Axians123@' + CAMERA_IP + '/image3',
+    1: 'https://admin:Axians123@' + CAMERA_IP + '/image3',
     2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
   };
 
@@ -634,6 +688,113 @@
   var activePreviewCam = null;
   var ptzSpeed = 5;
   var selectedContentId = null;
+  var contacts = [];
+  var activeSynthe = null; // contact id currently on air
+
+  // ===== LOAD CONTACTS FROM GITHUB =====
+  async function loadContacts() {
+    try {
+      var resp = await fetch('https://raw.githubusercontent.com/' + GH_REPO + '/main/contacts.json', { cache: 'no-store' });
+      if (resp.ok) {
+        contacts = await resp.json();
+        buildSynthePills();
+      }
+    } catch(e) {
+      console.error('Contacts load error:', e);
+      // Fallback: try API
+      try {
+        var r2 = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/contacts.json', {
+          headers: { 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (r2.ok) {
+          var d = await r2.json();
+          contacts = JSON.parse(decodeURIComponent(escape(atob(d.content))));
+          buildSynthePills();
+        }
+      } catch(e2) { console.error('Contacts fallback error:', e2); }
+    }
+  }
+
+  // ===== BUILD SYNTHÉ PILLS =====
+  function buildSynthePills() {
+    var grid = document.getElementById('synthesGrid');
+    var countEl = document.getElementById('synthesCount');
+    grid.innerHTML = '';
+
+    if (!contacts || contacts.length === 0) {
+      grid.innerHTML = '<span style="font-size:10px;color:#444;">Aucun contact</span>';
+      countEl.textContent = '';
+      return;
+    }
+
+    // Sort by lastName
+    var sorted = contacts.slice().sort(function(a, b) {
+      return (a.lastName || '').localeCompare(b.lastName || '');
+    });
+
+    countEl.textContent = '(' + sorted.length + ')';
+
+    sorted.forEach(function(c) {
+      var pill = document.createElement('span');
+      pill.className = 'synthe-pill';
+      pill.textContent = c.firstName + ' ' + c.lastName;
+      pill.dataset.contactId = c.id;
+
+      if (activeSynthe === c.id) pill.classList.add('on-air');
+
+      pill.addEventListener('click', function() {
+        toggleSynthe(c);
+      });
+
+      grid.appendChild(pill);
+    });
+  }
+
+  // ===== TOGGLE SYNTHÉ ON/OFF =====
+  function toggleSynthe(contact) {
+    var overlay = document.getElementById('syntheOverlay');
+
+    if (activeSynthe === contact.id) {
+      // Turn OFF
+      overlay.classList.remove('visible');
+      activeSynthe = null;
+      // Update pills
+      document.querySelectorAll('.synthe-pill').forEach(function(p) {
+        p.classList.remove('on-air');
+      });
+      return;
+    }
+
+    // Turn ON
+    activeSynthe = contact.id;
+
+    // Fill bandeau
+    document.getElementById('syntheNom').textContent = contact.firstName + ' ' + contact.lastName;
+    document.getElementById('syntheFonction').textContent = contact.function || '';
+    document.getElementById('syntheEntreprise').textContent = contact.company || '';
+
+    // Show overlay with animation
+    overlay.classList.remove('visible');
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        overlay.classList.add('visible');
+      });
+    });
+
+    // Update pills
+    document.querySelectorAll('.synthe-pill').forEach(function(p) {
+      if (p.dataset.contactId === contact.id) {
+        p.classList.add('on-air');
+      } else {
+        p.classList.remove('on-air');
+      }
+    });
+  }
+
+  // Load contacts on startup
+  loadContacts();
+  // Refresh contacts every 2 minutes
+  setInterval(loadContacts, 120000);
 
   // ===== OVERLAY CONTENTS =====
   function loadContents() {
@@ -702,7 +863,7 @@
   loadContents();
   setInterval(loadContents, 30000);
 
-  // ===== ENVOYER COMMANDE CAMERA =====
+  // ===== CAMERA COMMANDS =====
   function sendCmd(cgi, params) {
     var query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
     var url = 'https://' + CAMERA_IP + '/command/' + cgi + '?' + query;
@@ -829,15 +990,14 @@
   }
 
   // ===== GÉNÉRIQUES =====
-var RENDER_SERVER = 'https://ecamm-overlay-server.onrender.com';
-var generiques = [
+  var RENDER_SERVER = 'https://ecamm-overlay-server.onrender.com';
+  var generiques = [
     { nom: 'GEN - Ligne Métier Communication', url: RENDER_SERVER + '/videos/gen-communication.mov' },
     { nom: 'GEN - Morning', url: RENDER_SERVER + '/videos/morning-2026-v1.mp4' }
-];
+  ];
 
   var pgmVideo = document.getElementById('pgmVideo');
 
-  // Générer les vignettes
   function buildGenThumbs() {
     var container = document.getElementById('genThumbs');
     container.innerHTML = '';
@@ -853,7 +1013,6 @@ var generiques = [
   }
   buildGenThumbs();
 
-  // Précharger le premier générique directement dans le player
   if (generiques.length > 0) {
     pgmVideo.src = generiques[0].url;
     pgmVideo.load();
@@ -866,30 +1025,25 @@ var generiques = [
     var pgmLive = document.getElementById('pgmLive');
     var pgmCamLabel = document.getElementById('pgmCamLabel');
 
-    // Masquer le flux caméra
     pgmStream.style.display = 'none';
     pgmStream.src = '';
     pgmLabel.style.display = 'none';
     pgmLive.style.display = 'none';
     pgmCamLabel.style.display = 'none';
 
-    // Déselectionner les cam pills
     document.querySelectorAll('.cam-pill').forEach(function(p) { p.classList.remove('active'); });
     activePgmCam = null;
 
-    // Marquer la vignette en lecture
     document.querySelectorAll('.m-thumb').forEach(function(t) { t.classList.remove('playing'); });
     var thumb = document.querySelector('.m-thumb[data-gen="' + index + '"]');
     if (thumb) thumb.classList.add('playing');
 
-    // Lancer la vidéo
     pgmVideo.src = gen.url;
     pgmVideo.load();
     pgmVideo.style.display = 'block';
     pgmVideo.play();
   }
 
-  // Quand la vidéo se termine, afficher PGM
   pgmVideo.addEventListener('ended', function() {
     pgmVideo.style.display = 'none';
     document.querySelectorAll('.m-thumb').forEach(function(t) { t.classList.remove('playing'); });
@@ -898,7 +1052,6 @@ var generiques = [
     document.getElementById('pgmLabel').style.color = '#aaa';
   });
 
-  // Quand on sélectionne une caméra, stopper la vidéo
   var origSelectPgmCam = selectPgmCam;
   selectPgmCam = function(camNum) {
     pgmVideo.pause();
@@ -925,10 +1078,11 @@ var generiques = [
     l.textContent = 'CAM ' + activePreviewCam + ' — pas de signal';
     l.style.color = '#c44';
   });
+
   // ===== CALENDAR TIMELINE =====
-  var CAL_START = 8; // 8h
-  var CAL_END = 17;  // 17h
-  var HOUR_HEIGHT = 60; // px per hour
+  var CAL_START = 8;
+  var CAL_END = 17;
+  var HOUR_HEIGHT = 60;
   var calEvents = [
     { title: 'CHART SOLUTIONS', start: '10:00', end: '11:00' },
     { title: 'DA - ARNAUD/ERIC', start: '16:00', end: '16:30' },
@@ -945,7 +1099,6 @@ var generiques = [
     var totalHours = CAL_END - CAL_START;
     inner.style.height = (totalHours * HOUR_HEIGHT) + 'px';
 
-    // Hour rows
     for (var h = CAL_START; h < CAL_END; h++) {
       var row = document.createElement('div');
       row.className = 'cal-hour-row';
@@ -958,7 +1111,6 @@ var generiques = [
       inner.appendChild(row);
     }
 
-    // Events area
     var area = document.createElement('div');
     area.className = 'cal-events-area';
     area.style.height = (totalHours * HOUR_HEIGHT) + 'px';
@@ -985,7 +1137,6 @@ var generiques = [
       area.appendChild(div);
     });
 
-    // Now line
     if (nowMinutes >= CAL_START * 60 && nowMinutes <= CAL_END * 60) {
       var nowTop = ((nowMinutes - CAL_START * 60) / 60) * HOUR_HEIGHT;
       var line = document.createElement('div');
@@ -1003,7 +1154,6 @@ var generiques = [
       label.textContent = hh + 'H' + (mm < 10 ? '0' : '') + mm;
       inner.appendChild(label);
 
-      // Scroll to now line
       var timeline = document.getElementById('calTimeline');
       setTimeout(function() {
         timeline.scrollTop = Math.max(0, nowTop - 80);
@@ -1029,8 +1179,7 @@ var generiques = [
   }
 
   buildCalendar();
-  setInterval(updateNowLine, 30000); // Update every 30s
-  // Rebuild calendar every 5 min to update past/active states
+  setInterval(updateNowLine, 30000);
   setInterval(buildCalendar, 300000);
 
 </script>
