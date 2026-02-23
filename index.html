@@ -12,11 +12,28 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #252528;
+    background: #1a1028;
     color: #ddd;
     font-family: 'Barlow', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
     -webkit-user-select: none;
     user-select: none;
+  }
+
+  /* ===== ANIMATED BACKGROUND ===== */
+  .album-bg {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; overflow: hidden;
+    background: linear-gradient(135deg, #1a1028 0%, #2a1838 30%, #1c2a3a 60%, #1a1028 100%);
+  }
+  .album-bg .cover {
+    position: absolute; top: -20%; left: -20%; right: -20%; bottom: -20%;
+    background-size: cover; background-position: center;
+    filter: blur(80px) saturate(1.6) brightness(0.3);
+    transition: opacity 2.5s; opacity: 0;
+  }
+  .album-bg .cover.active { opacity: 1; }
+  .album-bg::after {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(0,0,0,0.35); z-index: 1;
   }
 
   /* ===== MAIN 3-COLUMN LAYOUT ===== */
@@ -27,6 +44,8 @@
     gap: 8px;
     padding: 8px;
     overflow: hidden;
+    position: relative;
+    z-index: 2;
   }
 
   /* ===== LEFT COLUMN: PGM + Conducteur + Carousel ===== */
@@ -37,14 +56,16 @@
     gap: 8px;
     min-height: 0;
     min-width: 0;
-    background: #2e2e32;
+    background: rgba(46,46,50,0.65);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border-radius: 20px;
     padding: 10px;
-    border: none;
+    border: 1px solid rgba(255,255,255,0.06);
   }
 
   .pgm-block {
-    background: #1a1a1e;
+    background: rgba(26,26,30,0.7);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -310,14 +331,16 @@
     gap: 8px;
     min-height: 0;
     overflow: hidden;
-    background: #2e2e32;
+    background: rgba(46,46,50,0.65);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border-radius: 20px;
     padding: 10px;
-    border: none;
+    border: 1px solid rgba(255,255,255,0.06);
   }
 
   .preview-panel {
-    background: #333338; border-radius: 16px; padding: 8px;
+    background: rgba(51,51,56,0.7); border-radius: 16px; padding: 8px;
     display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   }
@@ -474,10 +497,12 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #2e2e32;
+    background: rgba(46,46,50,0.65);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border-radius: 20px;
     padding: 10px 10px;
-    border: none;
+    border: 1px solid rgba(255,255,255,0.06);
   }
 
   .cal-header {
@@ -562,6 +587,7 @@
 </style>
 </head>
 <body>
+<div class="album-bg" id="albumBg"></div>
 <div class="main">
 
   <!-- ===== LEFT COLUMN ===== -->
@@ -1463,6 +1489,36 @@
 
   // Auto-connect CAM 1 on page load
   selectPgmCam(1);
+
+  // ===== ANIMATED BACKGROUND =====
+  var ALBUMS = [
+    'https://i.scdn.co/image/ab67616d0000b273ff9ca10b55ce82ae553c8228',
+    'https://i.scdn.co/image/ab67616d0000b273dc30583ba717007b00cceb25',
+    'https://i.scdn.co/image/ab67616d0000b2734ce8b4e42588bf18182a1ad2',
+    'https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b',
+    'https://i.scdn.co/image/ab67616d0000b273e319baafd16e84f0408af2a0',
+    'https://i.scdn.co/image/ab67616d0000b2731dacfbc31cc873d132958af9',
+    'https://i.scdn.co/image/ab67616d0000b273b1c4b76e23414c9f20f43b14',
+    'https://i.scdn.co/image/ab67616d0000b273f46b9d202509a8f7384b90de'
+  ];
+  var aidx = 0, abg = document.getElementById('albumBg');
+  var al1 = document.createElement('div'), al2 = document.createElement('div');
+  al1.className = 'cover active'; al2.className = 'cover';
+  abg.appendChild(al1); abg.appendChild(al2);
+  // Shuffle
+  for (var i = ALBUMS.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = ALBUMS[i]; ALBUMS[i] = ALBUMS[j]; ALBUMS[j] = tmp;
+  }
+  al1.style.backgroundImage = 'url(' + ALBUMS[0] + ')';
+  setInterval(function() {
+    aidx = (aidx + 1) % ALBUMS.length;
+    var a = al1.classList.contains('active') ? al1 : al2;
+    var b = (a === al1) ? al2 : al1;
+    b.style.backgroundImage = 'url(' + ALBUMS[aidx] + ')';
+    b.classList.add('active');
+    a.classList.remove('active');
+  }, 30000);
 
 </script>
 </body>
