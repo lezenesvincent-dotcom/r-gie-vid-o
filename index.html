@@ -22,15 +22,10 @@
   /* ===== ANIMATED BACKGROUND ===== */
   .album-bg {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; overflow: hidden;
-    background: linear-gradient(135deg, #1a1028 0%, #2a1838 30%, #1c2a3a 60%, #1a1028 100%);
   }
-  .album-bg .cover {
-    position: absolute; top: -20%; left: -20%; right: -20%; bottom: -20%;
-    background-size: cover; background-position: center;
-    filter: blur(80px) saturate(1.6) brightness(0.3);
-    transition: opacity 2.5s; opacity: 0;
+  .album-bg canvas {
+    width: 100%; height: 100%;
   }
-  .album-bg .cover.active { opacity: 1; }
   .album-bg::after {
     content: ''; position: absolute; inset: 0;
     background: rgba(0,0,0,0.35); z-index: 1;
@@ -1490,35 +1485,85 @@
   // Auto-connect CAM 1 on page load
   selectPgmCam(1);
 
-  // ===== ANIMATED BACKGROUND =====
-  var ALBUMS = [
-    'https://i.scdn.co/image/ab67616d0000b273ff9ca10b55ce82ae553c8228',
-    'https://i.scdn.co/image/ab67616d0000b273dc30583ba717007b00cceb25',
-    'https://i.scdn.co/image/ab67616d0000b2734ce8b4e42588bf18182a1ad2',
-    'https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b',
-    'https://i.scdn.co/image/ab67616d0000b273e319baafd16e84f0408af2a0',
-    'https://i.scdn.co/image/ab67616d0000b2731dacfbc31cc873d132958af9',
-    'https://i.scdn.co/image/ab67616d0000b273b1c4b76e23414c9f20f43b14',
-    'https://i.scdn.co/image/ab67616d0000b273f46b9d202509a8f7384b90de'
-  ];
-  var aidx = 0, abg = document.getElementById('albumBg');
-  var al1 = document.createElement('div'), al2 = document.createElement('div');
-  al1.className = 'cover active'; al2.className = 'cover';
-  abg.appendChild(al1); abg.appendChild(al2);
-  // Shuffle
-  for (var i = ALBUMS.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var tmp = ALBUMS[i]; ALBUMS[i] = ALBUMS[j]; ALBUMS[j] = tmp;
-  }
-  al1.style.backgroundImage = 'url(' + ALBUMS[0] + ')';
-  setInterval(function() {
-    aidx = (aidx + 1) % ALBUMS.length;
-    var a = al1.classList.contains('active') ? al1 : al2;
-    var b = (a === al1) ? al2 : al1;
-    b.style.backgroundImage = 'url(' + ALBUMS[aidx] + ')';
-    b.classList.add('active');
-    a.classList.remove('active');
-  }, 30000);
+  // ===== FLUID ANIMATED BACKGROUND =====
+  (function() {
+    var abg = document.getElementById('albumBg');
+    var canvas = document.createElement('canvas');
+    abg.appendChild(canvas);
+    var gl = canvas.getContext('webgl');
+    if (!gl) return;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    var vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}';
+    var fs = [
+      'precision mediump float;',
+      'uniform float t;',
+      'uniform vec2 r;',
+      '',
+      'vec3 palette(float x){',
+      '  vec3 a=vec3(0.08,0.04,0.12);',
+      '  vec3 b=vec3(0.12,0.06,0.18);',
+      '  vec3 c=vec3(0.6,0.5,0.7);',
+      '  vec3 d=vec3(0.15,0.55,0.75);',
+      '  return a+b*cos(6.28318*(c*x+d));',
+      '}',
+      '',
+      'void main(){',
+      '  vec2 uv=(gl_FragCoord.xy-0.5*r)/min(r.x,r.y);',
+      '  float n=0.0;',
+      '  vec2 p=uv;',
+      '  float T=t*0.08;',
+      '  for(int i=0;i<5;i++){',
+      '    p=vec2(',
+      '      sin(p.y*2.1+T*1.3+float(i)*0.7)+cos(p.x*1.7-T*0.9)*0.8,',
+      '      cos(p.x*2.3-T*1.1+float(i)*0.5)+sin(p.y*1.9+T*0.7)*0.8',
+      '    );',
+      '    n+=0.5/float(i+1)*length(sin(p*3.0+T));',
+      '  }',
+      '  vec3 col=palette(n*0.5+T*0.05);',
+      '  col*=0.55+0.45*sin(n*3.14);',
+      '  col=pow(col,vec3(0.9));',
+      '  gl_FragColor=vec4(col,1.0);',
+      '}'
+    ].join('\n');
+
+    function cs(src, type) {
+      var s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      return s;
+    }
+    var prog = gl.createProgram();
+    gl.attachShader(prog, cs(vs, gl.VERTEX_SHADER));
+    gl.attachShader(prog, cs(fs, gl.FRAGMENT_SHADER));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+    var pLoc = gl.getAttribLocation(prog, 'p');
+    gl.enableVertexAttribArray(pLoc);
+    gl.vertexAttribPointer(pLoc, 2, gl.FLOAT, false, 0, 0);
+
+    var tLoc = gl.getUniformLocation(prog, 't');
+    var rLoc = gl.getUniformLocation(prog, 'r');
+
+    function draw(time) {
+      gl.uniform1f(tLoc, time * 0.001);
+      gl.uniform2f(rLoc, canvas.width, canvas.height);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  })();
 
 </script>
 </body>
