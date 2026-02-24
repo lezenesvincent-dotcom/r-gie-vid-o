@@ -658,6 +658,7 @@
       <div class="preview-screen">
         <span id="previewLabel">CAM 1</span>
         <img id="previewStream" alt="">
+        <video id="previewVideo" playsinline autoplay muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px;display:none"></video>
         <div class="zoom-ctrls">
           <button class="zoom-btn">+</button>
           <button class="zoom-btn">−</button>
@@ -745,9 +746,64 @@
   var WS_SERVER = 'https://ecamm-overlay-server.onrender.com';
   var GH_REPO = 'lezenesvincent-dotcom/mon-content-manager';
   var camSources = {
-    1: 'https://admin:Axians123@' + CAMERA_IP + '/image3',
+    1: 'capture', // Boitier de capture USB (getUserMedia)
     2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null
   };
+
+  // Cache des streams getUserMedia par deviceId
+  var captureStreams = {};
+  var captureDeviceId = null;
+
+  // Détecte le boitier de capture au chargement
+  async function initCaptureDevice() {
+    try {
+      // D'abord demander la permission
+      var tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      tempStream.getTracks().forEach(function(t) { t.stop(); });
+
+      var devices = await navigator.mediaDevices.enumerateDevices();
+      var videoDevices = devices.filter(function(d) { return d.kind === 'videoinput'; });
+
+      console.log('Périphériques vidéo détectés:', videoDevices.length);
+      videoDevices.forEach(function(d, i) {
+        console.log('  [' + i + '] ' + d.label + ' (id: ' + d.deviceId.substring(0, 8) + '...)');
+      });
+
+      if (videoDevices.length > 0) {
+        // Cherche un boitier de capture (pas la webcam intégrée)
+        var capture = videoDevices.find(function(d) {
+          var label = d.label.toLowerCase();
+          return label.includes('capture') || label.includes('cam link') ||
+                 label.includes('magewell') || label.includes('blackmagic') ||
+                 label.includes('elgato') || label.includes('avermedia') ||
+                 label.includes('hdmi') || label.includes('usb video');
+        });
+        captureDeviceId = capture ? capture.deviceId : videoDevices[videoDevices.length - 1].deviceId;
+        console.log('Boitier de capture sélectionné:', capture ? capture.label : videoDevices[videoDevices.length - 1].label);
+      }
+    } catch (e) {
+      console.log('Pas de périphérique de capture disponible:', e.message);
+    }
+  }
+
+  async function getCaptureStream() {
+    if (!captureDeviceId) await initCaptureDevice();
+    if (!captureDeviceId) return null;
+
+    if (captureStreams[captureDeviceId]) return captureStreams[captureDeviceId];
+
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: captureDeviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+      captureStreams[captureDeviceId] = stream;
+      return stream;
+    } catch (e) {
+      console.error('Erreur capture:', e.message);
+      return null;
+    }
+  }
 
   var activePgmCam = null;
   var activePreviewCam = null;
@@ -1133,6 +1189,7 @@
   function selectPgmCam(camNum) {
     var pgmLabel = document.getElementById('pgmLabel');
     var pgmStream = document.getElementById('pgmStream');
+    var pgmVideo = document.getElementById('pgmVideo');
     var pgmLive = document.getElementById('pgmLive');
     var pgmCamLabel = document.getElementById('pgmCamLabel');
 
@@ -1141,7 +1198,30 @@
     activePgmCam = camNum;
 
     var src = camSources[camNum];
-    if (src) {
+    // Reset both
+    pgmStream.style.display = 'none'; pgmStream.src = '';
+    pgmVideo.style.display = 'none'; pgmVideo.srcObject = null;
+
+    if (src === 'capture') {
+      getCaptureStream().then(function(stream) {
+        if (stream) {
+          pgmLabel.style.display = 'none';
+          pgmVideo.srcObject = stream;
+          pgmVideo.muted = true;
+          pgmVideo.play();
+          pgmVideo.style.display = 'block';
+          pgmLive.style.display = 'block';
+          pgmCamLabel.textContent = 'CAM ' + camNum;
+          pgmCamLabel.style.display = 'block';
+        } else {
+          pgmLabel.style.display = 'block';
+          pgmLabel.textContent = 'CAM ' + camNum + ' (pas de signal)';
+          pgmLabel.style.color = '#f44';
+          pgmLive.style.display = 'none';
+          pgmCamLabel.style.display = 'none';
+        }
+      });
+    } else if (src) {
       pgmLabel.style.display = 'none';
       pgmStream.src = src;
       pgmStream.style.display = 'block';
@@ -1149,8 +1229,6 @@
       pgmCamLabel.textContent = 'CAM ' + camNum;
       pgmCamLabel.style.display = 'block';
     } else {
-      pgmStream.style.display = 'none';
-      pgmStream.src = '';
       pgmLive.style.display = 'none';
       pgmCamLabel.style.display = 'none';
       pgmLabel.style.display = 'block';
@@ -1171,19 +1249,36 @@
   function selectPreviewCam(camNum) {
     var previewLabel = document.getElementById('previewLabel');
     var previewStream = document.getElementById('previewStream');
+    var previewVideo = document.getElementById('previewVideo');
 
     document.querySelectorAll('.cam-g').forEach(function(g) { g.classList.remove('active'); });
     document.querySelector('.cam-g[data-cam="' + camNum + '"]').classList.add('active');
     activePreviewCam = camNum;
 
+    // Reset both
+    previewStream.style.display = 'none'; previewStream.src = '';
+    previewVideo.style.display = 'none'; previewVideo.srcObject = null;
+
     var src = camSources[camNum];
-    if (src) {
+    if (src === 'capture') {
+      getCaptureStream().then(function(stream) {
+        if (stream) {
+          previewLabel.style.display = 'none';
+          previewVideo.srcObject = stream;
+          previewVideo.muted = true;
+          previewVideo.play();
+          previewVideo.style.display = 'block';
+        } else {
+          previewLabel.style.display = 'block';
+          previewLabel.textContent = 'CAM ' + camNum + ' (pas de signal)';
+          previewLabel.style.color = '#f44';
+        }
+      });
+    } else if (src) {
       previewLabel.style.display = 'none';
       previewStream.src = src;
       previewStream.style.display = 'block';
     } else {
-      previewStream.style.display = 'none';
-      previewStream.src = '';
       previewLabel.style.display = 'block';
       previewLabel.textContent = 'CAM ' + camNum;
       previewLabel.style.color = '#aaa';
@@ -1483,7 +1578,9 @@
   setInterval(loadCalendarData, 300000);
 
   // Auto-connect CAM 1 on page load
-  selectPgmCam(1);
+  initCaptureDevice().then(function() {
+    selectPgmCam(1);
+  });
 
   // ===== FLUID ANIMATED BACKGROUND =====
   (function() {
