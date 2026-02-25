@@ -1702,27 +1702,49 @@
   }
 
   async function buildFaceMatcher() {
-    if (!contacts || contacts.length === 0) return null;
+    if (!contacts || contacts.length === 0) { console.warn('⚠️ Aucun contact chargé'); return null; }
     var labeledDescriptors = [];
     var GH_RAW = 'https://raw.githubusercontent.com/' + GH_REPO + '/main/';
 
+    console.log('📸 Analyse des photos de', contacts.length, 'contacts...');
+
     for (var i = 0; i < contacts.length; i++) {
       var c = contacts[i];
-      if (!c.photo) continue;
-      try {
-        var imgUrl = c.photo.startsWith('http') ? c.photo : GH_RAW + c.photo;
-        var img = await faceAPI.fetchImage(imgUrl);
-        var detection = await faceAPI.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-        if (detection) {
-          labeledDescriptors.push(new faceAPI.LabeledFaceDescriptors(c.id, [detection.descriptor]));
-          console.log('Visage enregistré:', c.firstName, c.lastName);
+      // Collecter toutes les photos (photo + photos[])
+      var allPhotos = [];
+      if (c.photo) allPhotos.push(c.photo);
+      if (c.photos && c.photos.length > 0) {
+        for (var p = 0; p < c.photos.length; p++) {
+          if (c.photos[p] && allPhotos.indexOf(c.photos[p]) === -1) allPhotos.push(c.photos[p]);
         }
-      } catch(e) { /* photo inaccessible */ }
+      }
+      if (allPhotos.length === 0) continue;
+
+      var descriptors = [];
+      for (var j = 0; j < allPhotos.length; j++) {
+        try {
+          var imgUrl = allPhotos[j].startsWith('http') ? allPhotos[j] : GH_RAW + allPhotos[j];
+          var img = await faceAPI.fetchImage(imgUrl);
+          var detection = await faceAPI.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+          if (detection) {
+            descriptors.push(detection.descriptor);
+            console.log('  ✅', c.firstName, c.lastName, '- photo', (j+1) + '/' + allPhotos.length);
+          } else {
+            console.log('  ⚠️', c.firstName, c.lastName, '- photo', (j+1), ': pas de visage détecté');
+          }
+        } catch(e) {
+          console.log('  ❌', c.firstName, c.lastName, '- photo', (j+1), ': erreur chargement');
+        }
+      }
+
+      if (descriptors.length > 0) {
+        labeledDescriptors.push(new faceAPI.LabeledFaceDescriptors(c.id, descriptors));
+      }
     }
 
-    if (labeledDescriptors.length === 0) return null;
-    console.log(labeledDescriptors.length + ' visages enregistrés');
-    return new faceAPI.FaceMatcher(labeledDescriptors, 0.45);
+    if (labeledDescriptors.length === 0) { console.warn('⚠️ Aucun visage trouvé'); return null; }
+    console.log('🎯', labeledDescriptors.length, 'contacts enregistrés pour la reconnaissance');
+    return new faceAPI.FaceMatcher(labeledDescriptors, 0.6);
   }
 
   async function runFaceDetection() {
@@ -1737,10 +1759,13 @@
           return a.detection.box.area > b.detection.box.area ? a : b;
         });
         var match = faceMatcher.findBestMatch(biggest.descriptor);
-        if (match.label !== 'unknown' && match.distance < 0.45) {
+        console.log('🔍 Scan:', match.label, 'distance:', match.distance.toFixed(3),
+          detections.length > 1 ? '(' + detections.length + ' visages détectés)' : '');
+
+        if (match.label !== 'unknown') {
           var contact = contacts.find(function(c) { return c.id === match.label; });
           if (contact && activeSynthe !== contact.id) {
-            console.log('Reconnu:', contact.firstName, contact.lastName, '(distance:', match.distance.toFixed(2) + ')');
+            console.log('✅ Reconnu:', contact.firstName, contact.lastName, '(distance:', match.distance.toFixed(3) + ')');
             toggleSynthe(contact);
             faceRecCooldown = true;
             setTimeout(function() { faceRecCooldown = false; }, 5000);
@@ -1748,7 +1773,7 @@
           lastRecognizedId = match.label;
         }
       }
-    } catch(e) { /* erreur silencieuse */ }
+    } catch(e) { console.error('Erreur détection:', e); }
   }
 
   faceRecBtn.addEventListener('click', async function() {
@@ -1778,8 +1803,10 @@
     faceRecActive = true;
     faceRecBtn.classList.add('active');
     faceRecBtn.querySelector('svg').setAttribute('stroke', '#0f0');
-    faceRecBtn.title = 'Reconnaissance faciale active (' + faceMatcher._labeledDescriptors.length + ' visages)';
-    faceRecInterval = setInterval(runFaceDetection, 2000);
+    var nbFaces = faceMatcher._labeledDescriptors.length;
+    faceRecBtn.title = 'Reconnaissance active (' + nbFaces + ' visages)';
+    console.log('🟢 Reconnaissance faciale activée -', nbFaces, 'visages, scan toutes les 1.5s');
+    faceRecInterval = setInterval(runFaceDetection, 1500);
   });
 
 </script>
