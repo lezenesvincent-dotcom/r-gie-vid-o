@@ -1131,7 +1131,10 @@
   function sendCmd(cgi, params) {
     var query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
     var url = 'https://admin:Axians123@' + CAMERA_IP + '/command/' + cgi + '?' + query;
+    console.log('📡 CMD:', cgi, query);
     var img = new Image();
+    img.onerror = function() { console.log('❌ CMD échouée (CORS ou réseau)'); };
+    img.onload = function() { console.log('✅ CMD OK'); };
     img.src = url;
   }
 
@@ -1152,11 +1155,21 @@
   document.querySelectorAll('.dpad-arrow').forEach(function(arrow) {
     var dir = arrow.getAttribute('data-dir');
     if (!dir) return;
-    arrow.addEventListener('mousedown', function(e) { e.preventDefault(); ptzMove(dir); });
-    arrow.addEventListener('touchstart', function(e) { e.preventDefault(); ptzMove(dir); });
-    arrow.addEventListener('mouseup', ptzStop);
-    arrow.addEventListener('mouseleave', ptzStop);
-    arrow.addEventListener('touchend', ptzStop);
+    var moving = false;
+    function startMove(e) {
+      e.preventDefault(); e.stopPropagation();
+      if (!moving) { moving = true; console.log('🎮 PTZ ' + dir + ' (speed=' + ptzSpeed + ')'); ptzMove(dir); }
+    }
+    function stopMove(e) {
+      if (moving) { moving = false; ptzStop(); }
+    }
+    arrow.addEventListener('mousedown', startMove);
+    arrow.addEventListener('touchstart', startMove, { passive: false });
+    arrow.addEventListener('mouseup', stopMove);
+    arrow.addEventListener('mouseleave', stopMove);
+    arrow.addEventListener('touchend', stopMove);
+    arrow.addEventListener('touchcancel', stopMove);
+    arrow.addEventListener('click', function(e) { e.preventDefault(); console.log('🎮 PTZ click ' + dir); ptzMove(dir); setTimeout(ptzStop, 500); });
   });
 
   document.querySelector('.dpad-center-btn').addEventListener('click', function() {
