@@ -1130,7 +1130,7 @@
   // ===== CAMERA COMMANDS =====
   function sendCmd(cgi, params) {
     var query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
-    var url = 'https://' + CAMERA_IP + '/command/' + cgi + '?' + query;
+    var url = 'https://admin:Axians123@' + CAMERA_IP + '/command/' + cgi + '?' + query;
     var img = new Image();
     img.src = url;
   }
