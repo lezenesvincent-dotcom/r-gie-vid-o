@@ -1130,12 +1130,17 @@
   // ===== CAMERA COMMANDS =====
   function sendCmd(cgi, params) {
     var query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
-    var url = 'https://admin:Axians123@' + CAMERA_IP + '/command/' + cgi + '?' + query;
+    var url = 'https://' + CAMERA_IP + '/command/' + cgi + '?' + query;
     console.log('📡 CMD:', cgi, query);
-    var img = new Image();
-    img.onerror = function() { console.log('❌ CMD échouée (CORS ou réseau)'); };
-    img.onload = function() { console.log('✅ CMD OK'); };
-    img.src = url;
+    fetch(url, {
+      method: 'GET',
+      headers: { 'Authorization': 'Basic ' + btoa('admin:Axians123') },
+      mode: 'no-cors'
+    }).then(function() {
+      console.log('✅ CMD envoyée');
+    }).catch(function(e) {
+      console.log('❌ CMD erreur:', e.message);
+    });
   }
 
   // ===== PTZ =====
