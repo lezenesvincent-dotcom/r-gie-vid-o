@@ -1128,19 +1128,18 @@
   setInterval(loadContents, 30000);
 
   // ===== CAMERA COMMANDS =====
+  // Iframe cachée pour envoyer les commandes PTZ à la caméra
+  // Les iframes permettent de contourner CORS car on ne lit pas la réponse
+  var ptzFrame = document.createElement('iframe');
+  ptzFrame.style.cssText = 'display:none;width:0;height:0;border:0;position:absolute;';
+  ptzFrame.name = 'ptzFrame';
+  document.body.appendChild(ptzFrame);
+
   function sendCmd(cgi, params) {
     var query = Object.entries(params).map(function(p) { return p[0] + '=' + p[1]; }).join('&');
-    var url = 'https://' + CAMERA_IP + '/command/' + cgi + '?' + query;
+    var url = 'https://admin:Axians123@' + CAMERA_IP + '/command/' + cgi + '?' + query;
     console.log('📡 CMD:', cgi, query);
-    fetch(url, {
-      method: 'GET',
-      headers: { 'Authorization': 'Basic ' + btoa('admin:Axians123') },
-      mode: 'no-cors'
-    }).then(function() {
-      console.log('✅ CMD envoyée');
-    }).catch(function(e) {
-      console.log('❌ CMD erreur:', e.message);
-    });
+    ptzFrame.src = url;
   }
 
   // ===== PTZ =====
@@ -1160,21 +1159,11 @@
   document.querySelectorAll('.dpad-arrow').forEach(function(arrow) {
     var dir = arrow.getAttribute('data-dir');
     if (!dir) return;
-    var moving = false;
-    function startMove(e) {
-      e.preventDefault(); e.stopPropagation();
-      if (!moving) { moving = true; console.log('🎮 PTZ ' + dir + ' (speed=' + ptzSpeed + ')'); ptzMove(dir); }
-    }
-    function stopMove(e) {
-      if (moving) { moving = false; ptzStop(); }
-    }
-    arrow.addEventListener('mousedown', startMove);
-    arrow.addEventListener('touchstart', startMove, { passive: false });
-    arrow.addEventListener('mouseup', stopMove);
-    arrow.addEventListener('mouseleave', stopMove);
-    arrow.addEventListener('touchend', stopMove);
-    arrow.addEventListener('touchcancel', stopMove);
-    arrow.addEventListener('click', function(e) { e.preventDefault(); console.log('🎮 PTZ click ' + dir); ptzMove(dir); setTimeout(ptzStop, 500); });
+    arrow.addEventListener('mousedown', function(e) { e.preventDefault(); ptzMove(dir); });
+    arrow.addEventListener('touchstart', function(e) { e.preventDefault(); ptzMove(dir); });
+    arrow.addEventListener('mouseup', ptzStop);
+    arrow.addEventListener('mouseleave', ptzStop);
+    arrow.addEventListener('touchend', ptzStop);
   });
 
   document.querySelector('.dpad-center-btn').addEventListener('click', function() {
